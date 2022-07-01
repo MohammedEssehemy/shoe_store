@@ -9,6 +9,6 @@ CREATE TABLE products_variants (
    variant_id INTEGER NOT NULL,
    product_id INTEGER NOT NULL,
    value VARCHAR,
-   FOREIGN KEY(variant_id) REFERENCES variants(id),
-   FOREIGN KEY(product_id) REFERENCES products(id)   
+   FOREIGN KEY(variant_id) REFERENCES variants(id) ON DELETE CASCADE,
+   FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );

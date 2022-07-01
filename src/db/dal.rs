@@ -1,4 +1,4 @@
-use super::models::{NewCompleteProduct, Product, ProductVariant, Variant};
+use super::models::{NewCompleteProduct, Product, ProductVariant, Variant, FormProduct};
 use super::schema::{products, products_variants, variants};
 use anyhow::Result;
 use diesel::{
@@ -47,10 +47,7 @@ pub fn create_product(new_product: NewCompleteProduct, conn: &SqliteConnection) 
     })
 }
 
-pub fn show_product(
-    id: i32,
-    conn: &SqliteConnection,
-) -> Result<(Product, Vec<(ProductVariant, Variant)>)> {
+pub fn show_product(id: i32, conn: &SqliteConnection) -> Result<(Product, Vec<(ProductVariant, Variant)>)> {
     let product_result = products::table.find(id).get_result::<Product>(conn)?;
 
     let variants_result = ProductVariant::belonging_to(&product_result)
@@ -60,9 +57,7 @@ pub fn show_product(
     Ok((product_result, variants_result))
 }
 
-pub fn list_products(
-    conn: &SqliteConnection,
-) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
+pub fn list_products(conn: &SqliteConnection) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
     let products_result = products::table.load::<Product>(conn)?;
     let variants_result = ProductVariant::belonging_to(&products_result)
         .inner_join(variants::table)
@@ -76,10 +71,7 @@ pub fn list_products(
     Ok(data)
 }
 
-pub fn search_products(
-    search: String,
-    conn: &SqliteConnection,
-) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
+pub fn search_products(search: String, conn: &SqliteConnection) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
     let pattern = format!("%{}%", search);
     let products_result = products::table
         .filter(products::name.like(pattern))
@@ -94,4 +86,41 @@ pub fn search_products(
         .collect::<Vec<_>>();
 
     Ok(data)
+}
+
+pub fn update_product(product_id: i32, form_product: FormProduct, conn: &SqliteConnection) -> Result<i32> {
+    conn.transaction(|| {
+        diesel::update(products::table.find(product_id))
+            .set(&form_product.product)
+            .execute(conn)?;
+
+        for mut form_product_variant in form_product.variants {
+            if form_product_variant.product_variant.variant_id.is_none() {
+                diesel::insert_into(variants::dsl::variants)
+                    .values(form_product_variant.variant)
+                    .execute(conn)?;
+                let last_variant_id: i32 = diesel::select(last_insert_rowid).first(conn)?;
+                form_product_variant.product_variant.variant_id = Some(last_variant_id);            
+            }
+
+            if let Some(product_variant_id) = form_product_variant.product_variant.id {
+                diesel::update(products_variants::table.find(product_variant_id))
+                    .set(&form_product_variant.product_variant)
+                    .execute(conn)?;
+            } else {
+                diesel::insert_into(products_variants::table)
+                    .values(&form_product_variant.product_variant)
+                    .execute(conn)?;
+            }
+        }
+
+        Ok(product_id)
+    })
+}
+
+pub fn delete_product(id: i32, conn: &SqliteConnection) ->  Result<i32> {
+    diesel::delete(products::table.find(id))
+        .execute(conn)?;
+
+    Ok(id)
 }
