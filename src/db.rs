@@ -1,4 +1,4 @@
+pub mod connect;
+pub mod dal;
+pub mod models;
 mod schema;
-mod models;
-mod dal;
-mod connect;

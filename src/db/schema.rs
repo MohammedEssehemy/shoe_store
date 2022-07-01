@@ -26,8 +26,4 @@ table! {
 joinable!(products_variants -> products (product_id));
 joinable!(products_variants -> variants (variant_id));
 
-allow_tables_to_appear_in_same_query!(
-    products,
-    products_variants,
-    variants,
-);
+allow_tables_to_appear_in_same_query!(products, products_variants, variants,);

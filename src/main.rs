@@ -1,10 +1,7 @@
-#[macro_use] extern crate diesel;
-extern crate diesel_migrations;
-extern crate dotenv;
-extern crate serde;
-extern crate serde_json;
-mod db;
+use shoe_store::db::{connect::establish_connection, dal::list_products};
 
 fn main() {
-    println!("shoe store");
+    let conn = establish_connection();
+    let products = list_products(&conn).unwrap();
+    println!("{:#?}", products);
 }
