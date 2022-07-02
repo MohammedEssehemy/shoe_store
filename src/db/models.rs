@@ -11,7 +11,7 @@ pub struct Product {
     pub active: bool,
 }
 
-#[derive(Insertable, Debug, AsChangeset)]
+#[derive(Insertable, Debug, AsChangeset, Serialize, Deserialize, Clone)]
 #[table_name = "products"]
 pub struct NewProduct {
     pub name: String,
@@ -26,7 +26,7 @@ pub struct Variant {
     pub name: String,
 }
 
-#[derive(Insertable, Debug, Clone)]
+#[derive(Insertable, Debug, Clone, Serialize, Deserialize)]
 #[table_name = "variants"]
 pub struct NewVariant {
     pub name: String,
@@ -50,12 +50,13 @@ pub struct NewProductVariant {
     pub value: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewVariantValue {
     pub variant: NewVariant,
     pub values: Vec<Option<String>>,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NewCompleteProduct {
     pub product: NewProduct,
     pub variants: Vec<NewVariantValue>,
