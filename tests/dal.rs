@@ -11,7 +11,8 @@ fn create_product_test() {
         NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, ProductVariant,
         Variant,
     };
-    let connection = establish_connection_test();
+    let pool = establish_connection_test();
+    let connection = pool.get().expect("failed to get db connection");
     connection.test_transaction::<_, Error, _>(|| {
         let variant = NewVariant {
             name: "size".to_string(),
@@ -164,7 +165,8 @@ fn show_product_test() {
         NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, ProductVariant,
         Variant,
     };
-    let connection = establish_connection_test();
+    let pool = establish_connection_test();
+    let connection = pool.get().expect("failed to get db connection");
     connection.test_transaction::<_, Error, _>(|| {
         let product_id = create_product(
             NewCompleteProduct {
@@ -265,7 +267,8 @@ fn search_products_test() {
         NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, ProductVariant,
         Variant,
     };
-    let connection = establish_connection_test();
+    let pool = establish_connection_test();
+    let connection = pool.get().expect("failed to get db connection");
     connection.test_transaction::<_, Error, _>(|| {
         let variants = vec![NewVariantValue {
             variant: NewVariant {
@@ -351,7 +354,8 @@ fn update_product_test() {
         NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, ProductVariant,
         Variant,
     };
-    let connection = establish_connection_test();
+    let pool = establish_connection_test();
+    let connection = pool.get().expect("failed to get db connection");
     connection.test_transaction::<_, Error, _>(|| {
         let created_product_id = create_product(
             NewCompleteProduct {
@@ -504,7 +508,8 @@ fn delete_product_test() {
     use models::{
         NewCompleteProduct, NewProduct, NewVariant, NewVariantValue
     };
-    let connection = establish_connection_test();
+    let pool = establish_connection_test();
+    let connection = pool.get().expect("failed to get db connection");
     connection.execute("PRAGMA foreign_keys = ON").unwrap();
     connection.test_transaction::<_, Error, _>(|| {
         let created_product_id =
