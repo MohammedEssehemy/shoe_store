@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, Responder, HttpResponse};
 use serde::{Serialize, Deserialize};
+use crate::db::dal::search_products;
 use super::db::{
     connect::DbPool,
     dal::{create_product, list_products, show_product},
@@ -28,7 +29,28 @@ struct ProductListQueryParams {
 #[get("/products")]
 async fn product_list(query_params: web::Query<ProductListQueryParams>, pool: web::Data<DbPool>) -> impl Responder {
 	let connection = pool.get().unwrap();
-	let products = web::block(move || list_products(query_params.limit, &connection).unwrap())
+	let ProductListQueryParams { limit } = query_params.into_inner();
+	let products = web::block(move || list_products(limit, &connection).unwrap())
+	.await
+	.map_err(|e| {
+            log::error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })
+	.unwrap();
+	HttpResponse::Ok().json(products)
+}
+
+
+#[derive(Serialize, Deserialize)]
+struct ProductSearchQueryParams {
+	search: String
+}
+
+#[get("/products/search")]
+async fn product_search(query: web::Query<ProductSearchQueryParams>, pool: web::Data<DbPool>) -> impl Responder {
+	let connection = pool.get().unwrap();
+	let ProductSearchQueryParams { search } = query.into_inner();
+	let products = web::block(move || search_products(search, &connection).unwrap())
 	.await
 	.map_err(|e| {
             log::error!("{}", e);

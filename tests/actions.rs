@@ -1,8 +1,10 @@
 use actix_web::{test, web, App};
-use helpers::establish_connection_test;
-use models::{NewCompleteProduct, NewProduct, NewVariant, NewVariantValue};
-use shoe_store::{actions, db::models};
+use shoe_store::{
+    actions, 
+    db::models::{NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, Variant, ProductVariant}
+};
 mod helpers;
+use helpers::establish_connection_test;
 
 #[actix_web::test]
 async fn test_product_creation_is_ok() {
@@ -146,6 +148,95 @@ async fn test_product_show() {
             web::Bytes::from_static(
                 b"[{\"id\":1,\"name\":\"Boots\",\"cost\":15.69,\"active\":true},[[{\"id\":1,\"product_id\":1,\"variant_id\":1,\"value\":\"12\"},{\"id\":1,\"name\":\"size\"}],[{\"id\":2,\"product_id\":1,\"variant_id\":1,\"value\":\"14\"},{\"id\":1,\"name\":\"size\"}],[{\"id\":3,\"product_id\":1,\"variant_id\":1,\"value\":\"16\"},{\"id\":1,\"name\":\"size\"}],[{\"id\":4,\"product_id\":1,\"variant_id\":1,\"value\":\"18\"},{\"id\":1,\"name\":\"size\"}]]]"
             ),
+            resp
+        );
+}
+
+
+#[actix_web::test]
+async fn test_product_search() {
+    let pool = establish_connection_test();
+    let mut app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .service(actions::product_create)
+            .service(actions::product_search),
+    )
+    .await;
+    let body =
+			NewCompleteProduct {
+				product: NewProduct {
+					name: "Boots".to_string(),
+					cost: 13.23,
+					active: true
+				},
+				variants: vec![
+					NewVariantValue {
+						variant: NewVariant {
+							name: "size".to_string()
+						},
+						values: vec![
+							Some(12.to_string()),
+							Some(14.to_string()),
+							Some(16.to_string()),
+							Some(18.to_string())
+						]
+					}
+				]
+			};
+
+		let req = test::TestRequest::post().set_json(&body).uri("/products").to_request();
+		let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+		let body =
+			NewCompleteProduct {
+				product: NewProduct {
+					name: "Sandals".to_string(),
+					cost: 15.00,
+					active: true
+				},
+				variants: vec![
+					NewVariantValue {
+						variant: NewVariant {
+							name: "size".to_string()
+						},
+						values: vec![
+							Some(20.to_string()),
+						]
+					}
+				]
+			};
+
+		let req = test::TestRequest::post().set_json(&body).uri("/products").to_request();
+		let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get().uri("/products/search?search=Sandals").to_request();
+        let resp = test::call_and_read_body(&mut app, req).await;
+
+        let result = vec![(Product {
+            id: 2,
+			name: "Sandals".to_string(),
+			cost: 15.00,
+            active: true
+        }, vec![
+            (ProductVariant {
+                id: 5,
+                variant_id: 1,
+                product_id: 2,
+                value: Some(20.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            })
+        ])];
+
+            assert_eq!(
+            serde_json::to_string(&result).unwrap().as_bytes(),
             resp
         );
 }

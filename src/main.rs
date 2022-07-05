@@ -24,6 +24,7 @@ async fn main() -> std::io::Result<()> {
             .route("/hello", web::get().to(|| async { "Hello World!" }))
             .service(actions::product_create)
             .service(actions::product_list)
+            .service(actions::product_search)
             .service(actions::product_show)
     })
     .bind((address, port))?
