@@ -8,6 +8,8 @@ use diesel::{
 
 no_arg_sql_function!(last_insert_rowid, diesel::sql_types::Integer);
 
+const PRODUCT_DEFAULT_LIMIT: u16 = 50;
+
 pub fn create_product(new_product: NewCompleteProduct, conn: &SqliteConnection) -> Result<i32> {
     conn.transaction(|| {
         diesel::insert_into(products::table)
@@ -57,8 +59,9 @@ pub fn show_product(id: i32, conn: &SqliteConnection) -> Result<(Product, Vec<(P
     Ok((product_result, variants_result))
 }
 
-pub fn list_products(conn: &SqliteConnection) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
-    let products_result = products::table.load::<Product>(conn)?;
+pub fn list_products(limit: Option<u16>, conn: &SqliteConnection) -> Result<Vec<(Product, Vec<(ProductVariant, Variant)>)>> {
+    let limit: i64 = limit.unwrap_or(PRODUCT_DEFAULT_LIMIT).into();
+    let products_result = products::table.limit(limit).load::<Product>(conn)?;
     let variants_result = ProductVariant::belonging_to(&products_result)
         .inner_join(variants::table)
         .load::<(ProductVariant, Variant)>(conn)?

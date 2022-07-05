@@ -119,7 +119,7 @@ fn create_product_test() {
         };
 
         assert_eq!(
-            serde_json::to_string(&list_products(&connection).unwrap()).unwrap(),
+            serde_json::to_string(&list_products(None, &connection).unwrap()).unwrap(),
             serde_json::to_string(&vec![
                 (
                     Product {
