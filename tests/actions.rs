@@ -1,7 +1,19 @@
 use actix_web::{test, web, App};
 use shoe_store::{
     actions, 
-    db::models::{NewCompleteProduct, NewProduct, NewVariant, NewVariantValue, Product, Variant, ProductVariant}
+    db::models::{
+        NewCompleteProduct, 
+        NewProduct, 
+        NewVariant, 
+        NewVariantValue, 
+        Product, 
+        Variant, 
+        ProductVariant, 
+        FormProductVariant, 
+        FormVariant, 
+        FormProductVariantComplete, 
+        FormProduct
+    }
 };
 mod helpers;
 use helpers::establish_connection_test;
@@ -235,7 +247,130 @@ async fn test_product_search() {
             })
         ])];
 
-            assert_eq!(
+        assert_eq!(
+            serde_json::to_string(&result).unwrap().as_bytes(),
+            resp
+        );
+}
+
+
+#[actix_web::test]
+async fn test_product_update() {
+        let pool = establish_connection_test();
+    let mut app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .service(actions::product_create)
+            .service(actions::product_update)
+            .service(actions::product_show)
+    )
+    .await;
+
+    		let body =
+			NewCompleteProduct {
+				product: NewProduct {
+					name: "boots".to_string(),
+					cost: 13.23,
+					active: true
+				},
+				variants: vec![
+					NewVariantValue {
+						variant: NewVariant {
+							name: "size".to_string()
+						},
+						values: vec![
+							Some(12.to_string()),
+							Some(14.to_string()),
+							Some(16.to_string()),
+							Some(18.to_string())
+						]
+					}
+				]
+			};
+
+		let req = test::TestRequest::post().set_json(&body).uri("/products").to_request();
+		let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+        let body =
+            FormProduct {
+                product: NewProduct {
+                    name: "high heels".to_string(),
+                    cost: 15.00,
+                    active: true
+                },
+                variants: vec![
+                    FormProductVariantComplete {
+                        variant: Some(FormVariant {
+                            id: Some(1),
+                            name: "size".to_string()
+                        }),
+                        product_variant: FormProductVariant {
+                            id: Some(1),
+                            variant_id: Some(1),
+                            product_id: 1,
+                            value: Some(20.to_string())
+                        }
+                    }
+                ]
+            };
+        let req = test::TestRequest::put().set_json(&body).uri("/products/1").to_request();
+		let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get().uri("/products/1").to_request();
+        let resp = test::call_and_read_body(&mut app, req).await;
+
+        let result = (Product {
+            id: 1,
+            name: "high heels".to_string(),
+            cost: 15.00,
+            active: true
+        }, vec![
+            (ProductVariant {
+                id: 1,
+                variant_id: 1,
+                product_id: 1,
+                value: Some(20.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            }),
+            (ProductVariant {
+                id: 2,
+                variant_id: 1,
+                product_id: 1,
+                value: Some(14.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            }),
+            (ProductVariant {
+                id: 3,
+                variant_id: 1,
+                product_id: 1,
+                value: Some(16.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            }),
+            (ProductVariant {
+                id: 4,
+                variant_id: 1,
+                product_id: 1,
+                value: Some(18.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            })
+        ]);
+          assert_eq!(
             serde_json::to_string(&result).unwrap().as_bytes(),
             resp
         );

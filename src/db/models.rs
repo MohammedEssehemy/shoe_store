@@ -70,7 +70,7 @@ pub struct FormVariant {
     pub name: String
 }
 
-#[derive(Insertable, Debug, AsChangeset)]
+#[derive(Insertable, Debug, AsChangeset, Serialize, Deserialize)]
 #[table_name="products_variants"]
 pub struct FormProductVariant {
     pub id: Option<i32>,
@@ -79,11 +79,13 @@ pub struct FormProductVariant {
     pub value: Option<String>
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct FormProductVariantComplete {
     pub variant: Option<FormVariant>,
     pub product_variant: FormProductVariant,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct FormProduct {
     pub product: NewProduct,
     pub variants: Vec<FormProductVariantComplete>

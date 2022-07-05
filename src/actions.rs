@@ -1,10 +1,11 @@
-use actix_web::{get, post, web, Responder, HttpResponse};
+use actix_web::{get, post, web, Responder, HttpResponse, put};
 use serde::{Serialize, Deserialize};
-use crate::db::dal::search_products;
+use crate::db::dal::update_product;
+
 use super::db::{
     connect::DbPool,
-    dal::{create_product, list_products, show_product},
-    models::NewCompleteProduct
+    dal::{create_product, search_products, list_products, show_product},
+    models::{FormProduct, NewCompleteProduct}
 };
 
 #[post("/products")]
@@ -72,4 +73,20 @@ async fn product_show(id: web::Path<i32>, pool: web::Data<DbPool>) -> impl Respo
         })
 	.unwrap();
 	HttpResponse::Ok().json(product)
+}
+
+
+#[put("/products/{id}")]
+async fn product_update(id: web::Path<i32>, product: web::Json<FormProduct>, pool: web::Data<DbPool>) -> impl Responder {
+    let connection = pool.get().unwrap();
+	let id = id.into_inner();
+	let product = product.into_inner();
+	let _update_product_result = web::block(move || update_product(id, product, &connection).unwrap())
+	.await
+	.map_err(|e| {
+            log::error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })
+	.unwrap();
+	HttpResponse::Ok()
 }
