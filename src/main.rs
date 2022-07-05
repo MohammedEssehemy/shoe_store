@@ -27,6 +27,7 @@ async fn main() -> std::io::Result<()> {
             .service(actions::product_search)
             .service(actions::product_show)
             .service(actions::product_update)
+            .service(actions::product_delete)
     })
     .bind((address, port))?
     .run()

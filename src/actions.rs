@@ -1,6 +1,6 @@
-use actix_web::{get, post, web, Responder, HttpResponse, put};
+use actix_web::{get, post, web, Responder, HttpResponse, put, delete};
 use serde::{Serialize, Deserialize};
-use crate::db::dal::update_product;
+use crate::db::dal::{update_product, delete_product};
 
 use super::db::{
     connect::DbPool,
@@ -82,6 +82,21 @@ async fn product_update(id: web::Path<i32>, product: web::Json<FormProduct>, poo
 	let id = id.into_inner();
 	let product = product.into_inner();
 	let _update_product_result = web::block(move || update_product(id, product, &connection).unwrap())
+	.await
+	.map_err(|e| {
+            log::error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })
+	.unwrap();
+	HttpResponse::Ok()
+}
+
+
+#[delete("/products/{id}")]
+async fn product_delete(id: web::Path<i32>, pool: web::Data<DbPool>) -> impl Responder {
+	let connection = pool.get().unwrap();
+	let id = id.into_inner();
+	let _delete_product_result = web::block(move || delete_product(id, &connection).unwrap())
 	.await
 	.map_err(|e| {
             log::error!("{}", e);

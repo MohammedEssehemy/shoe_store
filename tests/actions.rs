@@ -375,3 +375,81 @@ async fn test_product_update() {
             resp
         );
 }
+
+#[actix_web::test]
+async fn test_product_delete_is_ok() {
+    let pool = establish_connection_test();
+    let mut app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .service(actions::product_create)
+            .service(actions::product_delete)
+            .service(actions::product_list)
+    )
+    .await;
+
+		let body =
+			NewCompleteProduct {
+				product: NewProduct {
+					name: "boots".to_string(),
+					cost: 13.23,
+					active: true
+				},
+				variants: vec![
+					NewVariantValue {
+						variant: NewVariant {
+							name: "size".to_string()
+						},
+						values: vec![
+							Some(12.to_string()),
+						]
+					}
+				]
+			};
+
+		let req = test::TestRequest::post().set_json(&body).uri("/products").to_request();
+		let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get().uri("/products?limit=5").to_request();
+        let resp = test::call_and_read_body(&mut app, req).await;
+
+        let result = vec![(Product {
+            id: 1,
+            name: "boots".to_string(),
+            cost: 13.23,
+            active: true
+        }, vec![
+            (ProductVariant {
+                id: 1,
+                variant_id: 1,
+                product_id: 1,
+                value: Some(12.to_string())
+            },
+            Variant {
+                id: 1,
+                name: "size".to_string()
+            })
+		])];
+
+          assert_eq!(
+            serde_json::to_string(&result).unwrap().as_bytes(),
+            resp
+        );
+
+        let req = test::TestRequest::delete().uri("/products/1").to_request();
+        let resp = test::call_service(&mut app, req).await;
+
+		assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get().uri("/products?limit=5").to_request();
+        let resp = test::call_and_read_body(&mut app, req).await;
+
+        let result: Vec<Product> = vec![];
+
+        assert_eq!(
+            serde_json::to_string(&result).unwrap().as_bytes(),
+            resp
+        );
+    }
