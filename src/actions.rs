@@ -2,7 +2,7 @@ use actix_web::{get, post, web, Responder, HttpResponse};
 use serde::{Serialize, Deserialize};
 use super::db::{
     connect::DbPool,
-    dal::{create_product, list_products},
+    dal::{create_product, list_products, show_product},
     models::NewCompleteProduct
 };
 
@@ -36,4 +36,18 @@ async fn product_list(query_params: web::Query<ProductListQueryParams>, pool: we
         })
 	.unwrap();
 	HttpResponse::Ok().json(products)
+}
+
+#[get("/products/{id}")]
+async fn product_show(id: web::Path<i32>, pool: web::Data<DbPool>) -> impl Responder {
+	let id = id.into_inner();
+	let connection = pool.get().unwrap();
+	let product = web::block(move || show_product(id, &connection).unwrap())
+	.await
+	.map_err(|e| {
+            log::error!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })
+	.unwrap();
+	HttpResponse::Ok().json(product)
 }
