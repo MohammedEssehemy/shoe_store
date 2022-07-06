@@ -1,4 +1,5 @@
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, web, App, http, HttpServer};
+use actix_cors::Cors;
 use dotenv::dotenv;
 use std::env;
 use env_logger::Env;
@@ -17,7 +18,14 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
     log::info!("starting HTTP server at {address}:{port}");
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin(env::var("CORS_ALLOWED_ORIGINS").unwrap_or("https://my_domain.com/".to_owned()).as_ref())
+            .allowed_methods(vec!["GET", "POST"])
+            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .max_age(3600);
         App::new()
+            .wrap(cors)
             .app_data(web::Data::new(conn.clone()))
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
